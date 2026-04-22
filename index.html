@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUCI GAME</title>
+    <style>
+        :root {
+            --bg-color: #fdfd96;
+            --panel-color: #333;
+            --cell-size: 50px;
+        }
+
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- OVERLAY DI AVVIO --- */
+        #start-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease, visibility 0.8s;
+        }
+
+        #start-button {
+            padding: 25px 60px;
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: white;
+            background: var(--panel-color);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        #start-button:hover {
+            transform: scale(1.05);
+            background: #000;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.4);
+        }
+
+        /* Nascondi overlay */
+        .hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        /* --- STILI ORIGINALI --- */
+        header {
+            background: var(--panel-color);
+            color: white;
+            padding: 10px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .controls button {
+            background: #555;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        #game-viewport {
+            flex-grow: 1;
+            position: relative;
+            background: white;
+            border: 15px solid var(--panel-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+        }
+
+        #canvas-container { position: relative; }
+
+        #crossword-grid {
+            display: grid;
+            background: white;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            border: 1.5px solid #000;
+            box-sizing: border-box;
+            position: relative;
+            background: white;
+        }
+
+        .cell.empty { border: none; background: transparent; }
+
+        .cell-num {
+            position: absolute;
+            top: 2px; left: 3px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 10;
+            cursor: crosshair;
+        }
+
+        #clue-drawer {
+            position: fixed;
+            bottom: -330px; left: 0;
+            width: 100%; height: 380px;
+            background: #fff;
+            border-top: 8px solid var(--panel-color);
+            transition: bottom 0.3s ease-out;
+            z-index: 1000;
+        }
+        #clue-drawer.open { bottom: 0; }
+        #drawer-handle {
+            height: 50px; background: var(--panel-color);
+            color: white; display: flex; justify-content: center;
+            align-items: center; cursor: pointer; font-weight: bold;
+        }
+        .clue-content { display: flex; padding: 20px; gap: 20px; height: 100%; background: #eee; }
+        .clue-col { flex: 1; display: flex; flex-direction: column; }
+        textarea { flex-grow: 1; padding: 10px; font-size: 16px; border: none; resize: none; }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+<audio id="bg-music" loop>
+    <source src="https://raw.githubusercontent.com/TheFisp/CRUCI.GAME/main/YTDown.com_YouTube_JVKE-her-official-lyric-video_Media_f5-IY_Ja1RM_009_128k.mp3" type="audio/mpeg">
+</audio>
+
+<div id="start-overlay">
+    <button id="start-button" onclick="startApp()">INIZIA IL GIOCO</button>
+</div>
+
+<header>
+    <h1>CRUCIVERBA LIVE HD</h1>
+    <div class="controls">
+        <button onclick="undo()">Annulla</button>
+        <button onclick="clearCtx()" style="background:#b33;">Reset</button>
+    </div>
+</header>
+
+<div id="game-viewport">
+    <div id="canvas-container">
+        <div id="crossword-grid"></div>
+        <canvas id="draw-canvas"></canvas>
+    </div>
+</div>
+
+<div id="clue-drawer">
+    <div id="drawer-handle" onclick="toggleDrawer()">DEFINIZIONI ▲</div>
+    <div class="clue-content">
+        <div class="clue-col">
+            <h3>ORIZZONTALI</h3>
+            <textarea readonly>
+3. Our future
+4. The creator of the loop is Fisp's
+6. Novo amor song
+7. Your favorite character that is a BBQ now
+10. The Cutest Ball of fur
+12. It's the ghost in the SMP
+13. Kirby is a Semi Human Semi-
+</textarea>
+        </div>
+        <div class="clue-col">
+            <h3>VERTICALI</h3>
+            <textarea readonly>
+1. It's lethal
+2. The cutest predator
+5. Joel's love
+6. JVKE song
+8. Blue Butterfly
+9. Who loves you a lot
+11. Levi's scared of-
+</textarea>
+        </div>
+    </div>
+</div>
+
+<script>
+    const grid = [
+        [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0],
+        [ 0,  1,  0,  0,  0,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0],
+        [ 0,  3, -1, -1, -1, -1, -1,  0,  4, -1,  5, -1, -1,  0,  0,  0, 0],
+        [ 0, -1,  0,  0,  0, -1,  0,  0,  0,  0, -1,  0,  0,  0,  0,  0, 0],
+        [ 0, -1,  0,  0,  6, -1, -1, -1, -1, -1, -1, -1, -1,  0,  0,  0, 0],
+        [ 7, -1, -1, -1, -1,  0,  0,  0,  0,  0, -1,  0,  0,  0,  0,  0, 0],
+        [ 0, -1,  0,  0, -1,  0,  0,  0,  0,  0, -1,  0,  0,  0,  0,  0, 0],
+        [ 0, -1,  0,  0,  0,  0,  0,  8,  0,  0, -1,  0,  0,  0,  0,  9, 0],
+        [ 0,  0,  0,  0,  0,  0, 10, -1, -1, -1, -1, -1, -1,  0,  0, -1, 0],
+        [ 0,  0,  0,  0,  0,  0,  0, -1,  0,  0, -1,  0,  0, 11,  0, -1, 0],
+        [ 0,  0,  0,  0,  0,  0,  0,  0, 12, -1, -1, -1, -1, -1, -1, -1,-1],
+        [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0, -1,  0,  0, -1,  0, -1, 0],
+        [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, -1,  0,  0, 0],
+        [ 0,  0,  0,  0,  0,  0,  0,  0, 13, -1, -1, -1, -1, -1,  0,  0, 0],
+        [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, -1,  0,  0, 0],
+    ];
+
+    const cellSize = 50;
+    const gridEl = document.getElementById('crossword-grid');
+    const canvas = document.getElementById('draw-canvas');
+    const ctx = canvas.getContext('2d');
+    const audio = document.getElementById('bg-music');
+    let drawing = false;
+    let history = [];
+
+    // FUNZIONE DI AVVIO
+    function startApp() {
+        // Avvia la musica
+        audio.play().catch(e => console.log("Errore riproduzione:", e));
+        
+        // Nascondi overlay con animazione
+        document.getElementById('start-overlay').classList.add('hidden');
+    }
+
+    function build() {
+        const rows = grid.length;
+        const cols = grid[0].length;
+        gridEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+        
+        grid.forEach(r => {
+            r.forEach(c => {
+                const d = document.createElement('div');
+                if(c === 0) d.className = 'cell empty';
+                else {
+                    d.className = 'cell';
+                    if(c > 0) d.innerHTML = `<span class="cell-num">${c}</span>`;
+                }
+                gridEl.appendChild(d);
+            });
+        });
+
+        canvas.width = cols * cellSize;
+        canvas.height = rows * cellSize;
+    }
+
+    function getMouse(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        history.push(canvas.toDataURL());
+        drawing = true;
+        const p = getMouse(e);
+        ctx.beginPath(); ctx.moveTo(p.x, p.y);
+    });
+
+    window.addEventListener('mouseup', () => drawing = false);
+    canvas.addEventListener('mousemove', (e) => {
+        if(!drawing) return;
+        const p = getMouse(e);
+        ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#1e3799';
+        if(e.buttons === 1) { ctx.globalCompositeOperation = 'source-over'; ctx.lineTo(p.x, p.y); ctx.stroke(); }
+        else if(e.buttons === 2) { ctx.globalCompositeOperation = 'destination-out'; ctx.lineWidth = 30; ctx.lineTo(p.x, p.y); ctx.stroke(); }
+    });
+
+    function undo() {
+        if(history.length > 0) {
+            let img = new Image();
+            img.onload = () => { ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0); };
+            img.src = history.pop();
+        }
+    }
+
+    function clearCtx() { if(confirm("Resetti le scritte?")) ctx.clearRect(0,0,canvas.width,canvas.height); }
+    function toggleDrawer() { document.getElementById('clue-drawer').classList.toggle('open'); }
+
+    build();
+</script>
+</body>
+</html>
